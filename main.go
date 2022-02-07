@@ -89,12 +89,7 @@ func main() {
 		data,
 	)
 
-	sig, err := crypto.Sign(rawTx.Hash().Bytes(), key)
-	if err != nil {
-		log.Fatalf("sign tx error: %v", err)
-	}
-	signer := types.NewEIP155Signer(big.NewInt(4689))
-	tx, err := rawTx.WithSignature(signer, sig)
+	tx, err := types.SignTx(rawTx, types.NewEIP155Signer(big.NewInt(4689)), key)
 	if err != nil {
 		log.Fatalf("compose tx error: %v", err)
 	}
