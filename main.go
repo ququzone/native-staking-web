@@ -15,6 +15,25 @@ import (
 )
 
 func main() {
+	client, err := ethclient.Dial("http://api.nightly-cluster-2.iotex.one:15014")
+	if err != nil {
+		log.Fatalf("connect rpc server error: %v", err)
+	}
+
+	keyBytes, err := hex.DecodeString("replace by your private key")
+	if err != nil {
+		log.Fatalf("decode private key error: %v", err)
+	}
+	key, err := crypto.ToECDSA(keyBytes)
+	if err != nil {
+		log.Fatalf("create esdsa private key from key bytes error: %v", err)
+	}
+	from := crypto.PubkeyToAddress(key.PublicKey)
+	nonce, err := client.NonceAt(context.Background(), from, nil)
+	if err != nil {
+		log.Fatalf("get account nonce error: %v", err)
+	}
+
 	stakingABI, err := abi.JSON(bytes.NewReader([]byte(`[
 		{
 		  "inputs": [
@@ -62,7 +81,7 @@ func main() {
 	}
 
 	rawTx := types.NewTransaction(
-		1,
+		nonce,
 		common.HexToAddress("0x000000000000007374616b696e67437265617465"),
 		big.NewInt(0),
 		100000,
@@ -70,14 +89,6 @@ func main() {
 		data,
 	)
 
-	keyBytes, err := hex.DecodeString("replace by your private key")
-	if err != nil {
-		log.Fatalf("decode private key error: %v", err)
-	}
-	key, err := crypto.ToECDSA(keyBytes)
-	if err != nil {
-		log.Fatalf("create esdsa private key from key bytes error: %v", err)
-	}
 	sig, err := crypto.Sign(rawTx.Hash().Bytes(), key)
 	if err != nil {
 		log.Fatalf("sign tx error: %v", err)
@@ -86,11 +97,6 @@ func main() {
 	tx, err := rawTx.WithSignature(signer, sig)
 	if err != nil {
 		log.Fatalf("compose tx error: %v", err)
-	}
-
-	client, err := ethclient.Dial("http://api.nightly-cluster-2.iotex.one:15014")
-	if err != nil {
-		log.Fatalf("connect rpc server error: %v", err)
 	}
 
 	err = client.SendTransaction(context.Background(), tx)
